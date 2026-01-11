@@ -4,9 +4,7 @@ package twitchirc
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
-	"log"
 	"net"
 	"strings"
 )
@@ -23,7 +21,7 @@ import (
 func Start(msgChan chan<- ChatMessage, oauthToken, username, channel string) error {
 	conn, err := net.Dial("tcp", "irc.chat.twitch.tv:6667")
 	if err != nil {
-		return err
+		return ErrDial
 	}
 	defer conn.Close()
 
@@ -38,8 +36,7 @@ func Start(msgChan chan<- ChatMessage, oauthToken, username, channel string) err
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil {
-			log.Println("IRC read error: ", err)
-			break
+			return ErrReader
 		}
 
 		rawMessage := string(line)
@@ -55,7 +52,7 @@ func Start(msgChan chan<- ChatMessage, oauthToken, username, channel string) err
 		if strings.Contains(rawMessage, "NOTICE") {
 			ircMessage := strings.Split(rawMessage, ":")
 			if len(ircMessage) >= 3 && cleanString(ircMessage[2]) == "login authentication failed" {
-				return errors.New("Login authentication error")
+				return ErrLogin
 			}
 			continue
 		}
